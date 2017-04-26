@@ -92,7 +92,7 @@ If nil Emacs will reattach itself to the process on entering downloads list."
   :group 'aria2)
 
 (defcustom aria2-add-evil-quirks nil
-  "If t adds aria2-mode to emacs states, and binds \C-w.")
+  "If t adds aria2-mode to emacs-states, and binds `C-w'.")
 
 (defvar aria2--debug nil
   "Should json commands and replies be printed.")
@@ -154,6 +154,7 @@ If nil Emacs will reattach itself to the process on entering downloads list."
 ;;; Utils start here.
 
 (defsubst aria2--url ()
+  "Format URL."
   (format "http://localhost:%d/jsonrpc" aria2-rcp-listen-port))
 
 (defun aria2--base64-encode-file (path)
@@ -166,7 +167,7 @@ If nil Emacs will reattach itself to the process on entering downloads list."
       (kill-buffer))))
 
 (defun aria2--is-aria-process-p (pid)
-  "Returns t if `process-attributes' of PID belongs to aria."
+  "Return t if `process-attributes' of PID belongs to aria."
   (let ((proc-attr (process-attributes pid)))
     (and
      (string= "aria2c" (alist-get 'comm proc-attr))
@@ -218,6 +219,7 @@ If nil Emacs will reattach itself to the process on entering downloads list."
   "Mapping of aria2 error codes to error messages.")
 
 (defsubst aria2--decode-error (err)
+  "Provide error messages accroding to ERR."
   (or (cdr-safe (assoc-string err aria2--codes-to-errors-alist nil))
       "Unknown/other error"))
 
@@ -465,6 +467,7 @@ Returns a pair of numbers denoting amount of files deleted and files inserted."
 (defvar aria2--refresh-timer nil
   "Holds a timer object that refreshes downloads list periodically.")
 
+;; FIXME
 (defsubst aria2--list-entries-File (e)
   (let ((bt (alist-get 'bittorrent e)))
     (or (and bt (alist-get 'name (alist-get 'info bt)))
@@ -477,7 +480,7 @@ Returns a pair of numbers denoting amount of files deleted and files inserted."
 
 (defsubst aria2--list-entries-Type (e)
   (or (and (alist-get 'bittorrent e) "bittorrent")
-      (let ((uris (cdr (car (elt (alist-get 'files (elt (tellStopped aria2--cc 0 3) 0)) 0)))))
+      (let ((uris (cdr (car (elt (alist-get 'files e) 0)))))
         (and (< 0 (length uris)) (car-safe (split-string (alist-get 'uri (elt uris 0)) ":"))))
       "unknown"))
 
@@ -648,13 +651,13 @@ Returns a pair of numbers denoting amount of files deleted and files inserted."
 (defconst aria2-supported-file-extension-regexp "\\.\\(?:meta\\(?:4\\|link\\)\\|torrent\\)$"
   "Regexp matching .torrent .meta4 and .metalink files.")
 
-(defun aria2--supported-file-type-p (f)
-  "Supported file predicate. Also allows directories to enable path navigation."
-  (or (file-directory-p f)
-      (string-match-p aria2-supported-file-extension-regexp f)))
+(defun aria2--supported-file-type-p (file)
+  "Supported FILE predicate. Also allow directories to enable path navigation."
+  (or (file-directory-p file)
+      (string-match-p aria2-supported-file-extension-regexp file)))
 
 (defun aria2-add-file (arg)
-  "Prompt for a file and add it. Supports .torrent .meta4 and .metalink files."
+  "Prompt for a file and add it. ARG supports .torrent .meta4 and .metalink files."
   (interactive "P")
   (let ((chosen-file
          (expand-file-name
