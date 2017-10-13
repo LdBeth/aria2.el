@@ -167,12 +167,21 @@ If nil Emacs will reattach itself to the process on entering downloads list."
         (base64-encode-string (buffer-string) t)
       (kill-buffer))))
 
-(defun aria2--is-aria-process-p (pid)
-  "Return t if `process-attributes' of PID belongs to aria."
-  (let ((proc-attr (process-attributes pid)))
-    (and
-     (string= "aria2c" (alist-get 'comm proc-attr))
-     (string= (user-real-login-name) (alist-get 'user proc-attr)))))
+;; Before Emacs 26 `process-attributes' is not supported on Darwin.
+(if (or (not (eq system-type 'darwin))
+        (and (eq system-type 'darwin) (version<= "26" emacs-version)))
+    (defun aria2--is-aria-process-p (pid)
+      "Return t if `process-attributes' of PID belongs to aria."
+      (let ((proc-attr (process-attributes pid)))
+        (and
+         (string= "aria2c" (alist-get 'comm proc-attr))
+         (string= (user-real-login-name) (alist-get 'user proc-attr)))))
+  (defun aria2--is-aria-process-p (f &rest ARG)
+    "Returns t if PID belongs to aria."
+    (let ((pid (car ARG)))
+      (eq pid (string-to-number
+               (shell-command-to-string
+                (format "pgrep -u %s aria2c" (user-real-login-name))))))))
 
 ;;; Error definitions start here
 
